@@ -36,6 +36,8 @@
 
         .win-title { font-size: 2.5rem; color: var(--accent); text-transform: uppercase; margin-bottom: 20px; }
         .summary-box { background: #000; padding: 20px; border-radius: 12px; margin-top: 20px; text-align: left; border: 1px solid #333; font-size: 0.95rem; }
+        .leaderboard { margin-top: 20px; border-top: 1px solid #333; padding-top: 20px; text-align: left; }
+        .leaderboard h3 { color: var(--white); margin-bottom: 10px; font-family: 'JetBrains Mono'; }
 
         .prof-signature { margin-top: 40px; font-family: 'JetBrains Mono'; font-size: 0.9rem; color: #555; border-top: 1px solid #222; padding-top: 20px; width: 100%; text-align: center; }
         #helpText { display:none; font-size: 1.1rem; margin-top: 15px; font-style: italic; color: var(--accent); background: rgba(0,255,128,0.1); padding: 12px; border-radius: 8px; line-height: 1.4; }
@@ -76,7 +78,9 @@
 
         <div id="screen-discussion" class="screen">
             <h2 style="color: var(--accent);">Giro di Parole!</h2>
-            <p>Descrivete il termine senza dirlo esplicitamente.</p>
+            <p style="font-size: 1.3rem;">Inizia a parlare:</p>
+            <div id="starterName" class="player-name" style="color: var(--white); border: 2px solid var(--white); border-radius: 15px; padding: 10px;">NOME</div>
+            <p style="margin-top: 15px; opacity: 0.8;">Poi procedete in senso orario.</p>
             <button onclick="goToVoting()" style="margin-top: 40px;">VAI AL VOTO</button>
         </div>
 
@@ -101,6 +105,12 @@
         <div id="screen-game-over" class="screen">
             <div id="winMessage" class="win-title">VINCONO</div>
             <div class="summary-box" id="gameSummary"></div>
+            
+            <div class="leaderboard">
+                <h3>🏆 CLASSIFICA GENERALE</h3>
+                <div id="leaderboardList"></div>
+            </div>
+
             <button onclick="restartGame()">RIGIOCA (Stessi Nomi)</button>
             <button class="secondary" onclick="resetAll()">RESET (Cambia Gruppo)</button>
         </div>
@@ -133,6 +143,7 @@
         let currentPack = null;
         let lastEliminated = null;
         let playedPacksIndexes = [];
+        let starterPlayerName = "";
 
         function addPlayerInput() {
             const div = document.getElementById('nameInputs');
@@ -149,42 +160,40 @@
             inputs.forEach(input => {
                 const val = input.value.trim();
                 if(val !== '') {
-                    players.push({ name: val, word: "", role: "", roleCode: "", isEliminated: false });
+                    players.push({ name: val, word: "", role: "", roleCode: "", isEliminated: false, score: 0 });
                 }
             });
             if(players.length < 3) return alert("Servono almeno 3 giocatori!");
-            
             initRound();
         }
 
-        // Nuova funzione per gestire "Rigioca"
         function restartGame() {
-            // Reset stato eliminazioni e ruoli ma tiene i nomi
             players.forEach(p => {
                 p.isEliminated = false;
-                p.word = "";
-                p.role = "";
-                p.roleCode = "";
+                p.word = ""; p.role = ""; p.roleCode = "";
             });
             document.getElementById('whiteGuessInput').value = '';
             initRound();
         }
 
         function resetAll() {
-            players = [];
-            playedPacksIndexes = [];
+            players = []; playedPacksIndexes = [];
             document.getElementById('nameInputs').innerHTML = `
                 <input type="text" placeholder="Giocatore 1" class="p-name">
                 <input type="text" placeholder="Giocatore 2" class="p-name">
                 <input type="text" placeholder="Giocatore 3" class="p-name">
                 <input type="text" placeholder="Giocatore 4" class="p-name">
             `;
-            document.getElementById('whiteGuessInput').value = '';
             switchScreen('screen-setup');
         }
 
         function initRound() {
             assignRoles();
+            // Scegli lo starter (non deve essere Mr. White)
+            const possibleStarters = players.filter(p => p.roleCode !== 'W');
+            starterPlayerName = possibleStarters[Math.floor(Math.random() * possibleStarters.length)].name;
+            document.getElementById('starterName').innerText = starterPlayerName;
+
             currentPlayerIndex = 0;
             switchScreen('screen-pass');
             updatePassScreen();
@@ -202,7 +211,6 @@
             if (players.length >= 4) roles.push('W');
             while(roles.length < players.length) roles.push('C');
 
-            // Shuffle Ruoli
             for (let i = roles.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [roles[i], roles[j]] = [roles[j], roles[i]];
@@ -276,24 +284,40 @@
         function submitWhiteGuess() {
             const g = document.getElementById('whiteGuessInput').value.trim().toLowerCase();
             const a = currentPack.c.trim().toLowerCase();
-            if (g === a) endGame("MR. WHITE VINCE!");
+            if (g === a) endGame("MR. WHITE VINCE!", "W");
             else processVictoryLogic();
         }
 
         function processVictoryLogic() {
             const c = players.filter(p => !p.isEliminated && p.roleCode === 'C').length;
             const i = players.filter(p => !p.isEliminated && (p.roleCode === 'U' || p.roleCode === 'W')).length;
-            if (i === 0) endGame("I CITTADINI VINCONO!");
-            else if (c <= i) endGame("GLI INFILTRATI VINCONO!");
+            
+            if (i === 0) endGame("I CITTADINI VINCONO!", "C");
+            else if (c <= i) endGame("GLI INFILTRATI VINCONO!", "U");
             else switchScreen('screen-discussion');
         }
 
-        function endGame(msg) {
+        function endGame(msg, winnerCode) {
+            // Assegna punti
+            players.forEach(p => {
+                if (winnerCode === "C" && p.roleCode === "C") p.score += 1;
+                else if (winnerCode === "U" && (p.roleCode === "U" || p.roleCode === "W")) p.score += 2;
+                else if (winnerCode === "W" && p.roleCode === "W") p.score += 3;
+            });
+
             document.getElementById('winMessage').innerText = msg;
-            let s = `<b>Parola Cittadini:</b> ${currentPack.c}<br><b>Parola Undercover:</b> ${currentPack.u}<br><br><b>Membri del sistema:</b><ul style="margin:5px 0">`;
+            let s = `<b>Parola Cittadini:</b> ${currentPack.c}<br><b>Parola Undercover:</b> ${currentPack.u}<br><br><b>Ruoli:</b><ul style="margin:5px 0">`;
             players.forEach(p => s += `<li>${p.name}: ${p.role}</li>`);
             s += "</ul>";
             document.getElementById('gameSummary').innerHTML = s;
+
+            // Classifica
+            const sorted = [...players].sort((a,b) => b.score - a.score);
+            let lb = "<ul>";
+            sorted.forEach(p => lb += `<li><b>${p.name}</b>: ${p.score} punti</li>`);
+            lb += "</ul>";
+            document.getElementById('leaderboardList').innerHTML = lb;
+
             switchScreen('screen-game-over');
         }
 
