@@ -6,7 +6,7 @@
     <title>Undercover - Informatica Edition | Prof. Pitò</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Urbanist:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --accent: #00ff80; --bg: #0a0a0a; --card: #161616; }
+        :root { --accent: #00ff80; --bg: #0a0a0a; --card: #161616; --danger: #ff4444; }
         * { box-sizing: border-box; }
         body { font-family: 'Urbanist', sans-serif; background: var(--bg); color: white; text-align: center; padding: 20px; margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         
@@ -15,7 +15,6 @@
         
         .container { background: var(--card); padding: 40px; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,255,128,0.1); border: 1px solid #222; width: 100%; max-width: 600px; }
         
-        /* Gestione delle schermate */
         .screen { display: none; }
         .screen.active { display: block; animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -26,10 +25,13 @@
         button { width: 100%; padding: 18px; margin-top: 20px; border-radius: 12px; border: none; background: var(--accent); color: black; font-weight: bold; font-size: 1.2rem; cursor: pointer; transition: transform 0.1s, background 0.2s; }
         button:active { transform: scale(0.98); }
         button.secondary { background: transparent; border: 2px solid var(--accent); color: var(--accent); margin-top: 10px; }
+        button.danger { background: var(--danger); color: white; margin-top: 10px; border: none; }
 
         .player-name { font-size: 2.5rem; color: var(--accent); font-weight: bold; margin: 20px 0; text-transform: uppercase; }
         .secret-word { font-size: 3rem; font-weight: bold; margin: 30px 0; color: #fff; background: #000; padding: 30px; border-radius: 16px; border: 2px dashed var(--accent); }
-        .warning { color: #ff4444; font-size: 0.9rem; margin-top: 20px; font-weight: bold; }
+        
+        #voteList { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .role-reveal { font-size: 2rem; padding: 20px; border-radius: 12px; font-weight: bold; margin: 20px 0; border: 2px solid; }
 
         .prof-signature { margin-top: 40px; font-family: 'JetBrains Mono'; font-size: 0.9rem; color: #555; border-top: 1px solid #222; padding-top: 20px; width: 100%; text-align: center; }
     </style>
@@ -63,15 +65,31 @@
         <div id="screen-reveal" class="screen">
             <h2 id="revealTitle">La tua parola è:</h2>
             <div id="myWord" class="secret-word">PAROLA</div>
-            <p class="warning">Memorizza la parola e non dirla a nessuno!</p>
+            <p style="color: #ff4444; font-weight: bold;">Memorizza la parola e non dirla a nessuno!</p>
             <button onclick="nextPlayer()">NASCONDI E PASSA</button>
         </div>
 
-        <div id="screen-end" class="screen">
-            <h2 style="color: var(--accent); font-size: 2.5rem; margin-bottom: 20px;">Tutti pronti!</h2>
-            <p style="font-size: 1.2rem; line-height: 1.5;">Tutti hanno visto la propria carta.</p>
-            <p style="font-size: 1.2rem; line-height: 1.5;">Iniziate il giro di descrizioni. Chi sarà l'infiltrato?</p>
-            <button onclick="location.reload()" style="margin-top: 40px;">NUOVA PARTITA</button>
+        <div id="screen-discussion" class="screen">
+            <h2 style="color: var(--accent); font-size: 2.5rem;">Tutti pronti!</h2>
+            <p style="font-size: 1.2rem;">Ognuno dica una parola per descrivere il proprio termine.</p>
+            <p style="font-size: 1.2rem; opacity: 0.8;">Discutete: chi ha detto la parola più "sospetta"?</p>
+            <button onclick="goToVoting()" style="margin-top: 40px;">VAI ALLA VOTAZIONE</button>
+        </div>
+
+        <div id="screen-vote" class="screen">
+            <h2>Chi volete eliminare?</h2>
+            <p style="opacity: 0.7;">Il giocatore con più voti viene rimosso dal sistema.</p>
+            <div id="voteList"></div>
+            <button class="secondary" onclick="switchScreen('screen-discussion')">TORNA ALLA DISCUSSIONE</button>
+        </div>
+
+        <div id="screen-eliminated" class="screen">
+            <h2 id="eliminatedName" style="font-size: 2rem;">NOME è stato eliminato!</h2>
+            <p style="font-size: 1.2rem; margin-top: 10px;">Il suo ruolo segreto era:</p>
+            <div id="eliminatedRole" class="role-reveal">RUOLO</div>
+            
+            <button onclick="switchScreen('screen-discussion')">CONTINUA (NUOVO ROUND)</button>
+            <button class="secondary" onclick="location.reload()">TERMINA E NUOVA PARTITA</button>
         </div>
 
     </div>
@@ -80,15 +98,11 @@
 
     <script>
         const wordPacks = [
-            { c: "SSD", u: "Hard Disk" },
-            { c: "Router", u: "Switch" },
-            { c: "Compilatore", u: "Interprete" },
-            { c: "HTTPS", u: "HTTP" },
-            { c: "Ciclo FOR", u: "Ciclo WHILE" },
-            { c: "RAM", u: "Cache" },
-            { c: "Bit", u: "Byte" },
-            { c: "Mouse", u: "Touchpad" },
-            { c: "Frontend", u: "Backend" }
+            { c: "SSD", u: "Hard Disk" }, { c: "Router", u: "Switch" },
+            { c: "Compilatore", u: "Interprete" }, { c: "HTTPS", u: "HTTP" },
+            { c: "Ciclo FOR", u: "Ciclo WHILE" }, { c: "RAM", u: "Cache" },
+            { c: "Bit", u: "Byte" }, { c: "Mouse", u: "Touchpad" },
+            { c: "Frontend", u: "Backend" }, { c: "Windows", u: "Linux" }
         ];
 
         let players = [];
@@ -96,10 +110,9 @@
 
         function addPlayerInput() {
             const div = document.getElementById('nameInputs');
-            const inputCount = div.getElementsByTagName('input').length + 1;
             const input = document.createElement('input');
             input.type = 'text';
-            input.placeholder = 'Nome Giocatore ' + inputCount;
+            input.placeholder = 'Nome Giocatore ' + (div.children.length + 1);
             input.className = 'p-name';
             div.appendChild(input);
         }
@@ -110,13 +123,12 @@
             
             inputs.forEach(input => {
                 if(input.value.trim() !== '') {
-                    // Creiamo l'oggetto giocatore vuoto per ora
-                    players.push({ name: input.value.trim(), word: "", isWhite: false });
+                    players.push({ name: input.value.trim(), word: "", role: "", isEliminated: false });
                 }
             });
 
             if(players.length < 3) {
-                alert("Servono almeno 3 giocatori!");
+                alert("Servono almeno 3 giocatori per avviare il sistema!");
                 return;
             }
 
@@ -127,36 +139,39 @@
         }
 
         function assignRoles() {
-            // Scegliamo un pacchetto di parole a caso
             const pack = wordPacks[Math.floor(Math.random() * wordPacks.length)];
-            
-            // Determiniamo i ruoli: 1 Undercover. Se >= 4 giocatori, anche 1 Mr White.
             let roles = [];
-            roles.push('U'); // Un undercover
+            
+            roles.push('U'); // 1 Undercover garantito
+            
+            // Regola: Mr. White c'è solo se si gioca in 4 o più
             if (players.length >= 4) {
-                roles.push('W'); // Un Mr White
+                roles.push('W'); 
             }
             
-            // I restanti sono Cittadini (C)
+            // Riempiamo il resto con i Cittadini (C)
             while(roles.length < players.length) {
                 roles.push('C');
             }
 
-            // Mischiamo l'array dei ruoli (Algoritmo di Fisher-Yates)
+            // Mischiamo i ruoli (Shuffle)
             for (let i = roles.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [roles[i], roles[j]] = [roles[j], roles[i]];
             }
 
-            // Assegniamo le parole ai giocatori in base al ruolo mischiato
+            // Assegniamo parola e ruolo interno
             for(let i = 0; i < players.length; i++) {
+                players[i].roleCode = roles[i];
                 if (roles[i] === 'C') {
                     players[i].word = pack.c;
+                    players[i].role = "CITTADINO";
                 } else if (roles[i] === 'U') {
                     players[i].word = pack.u;
+                    players[i].role = "UNDERCOVER";
                 } else if (roles[i] === 'W') {
                     players[i].word = "???";
-                    players[i].isWhite = true;
+                    players[i].role = "MR. WHITE";
                 }
             }
         }
@@ -168,7 +183,7 @@
         function showWord() {
             const player = players[currentPlayerIndex];
             
-            if (player.isWhite) {
+            if (player.roleCode === 'W') {
                 document.getElementById('revealTitle').innerText = "Attenzione!";
                 document.getElementById('myWord').innerText = "SEI MR. WHITE";
                 document.getElementById('myWord').style.color = "#ffeb3b";
@@ -179,18 +194,55 @@
                 document.getElementById('myWord').style.color = "#fff";
                 document.getElementById('myWord').style.borderColor = "var(--accent)";
             }
-
             switchScreen('screen-reveal');
         }
 
         function nextPlayer() {
             currentPlayerIndex++;
             if (currentPlayerIndex >= players.length) {
-                switchScreen('screen-end');
+                switchScreen('screen-discussion');
             } else {
                 updatePassScreen();
                 switchScreen('screen-pass');
             }
+        }
+
+        function goToVoting() {
+            const list = document.getElementById('voteList');
+            list.innerHTML = ''; // Pulisce i bottoni vecchi
+
+            // Crea un bottone per ogni giocatore ancora in vita
+            players.forEach((player, index) => {
+                if (!player.isEliminated) {
+                    const btn = document.createElement('button');
+                    btn.className = 'danger';
+                    btn.innerText = "Elimina " + player.name;
+                    btn.onclick = () => eliminatePlayer(index);
+                    list.appendChild(btn);
+                }
+            });
+
+            switchScreen('screen-vote');
+        }
+
+        function eliminatePlayer(index) {
+            players[index].isEliminated = true;
+            
+            document.getElementById('eliminatedName').innerText = players[index].name + " è stato eliminato!";
+            
+            const roleDiv = document.getElementById('eliminatedRole');
+            roleDiv.innerText = players[index].role;
+
+            // Stile visivo in base a chi è morto
+            if (players[index].roleCode === 'C') {
+                roleDiv.style.color = "#00ff80"; roleDiv.style.borderColor = "#00ff80";
+            } else if (players[index].roleCode === 'U') {
+                roleDiv.style.color = "#ff4444"; roleDiv.style.borderColor = "#ff4444";
+            } else if (players[index].roleCode === 'W') {
+                roleDiv.style.color = "#ffeb3b"; roleDiv.style.borderColor = "#ffeb3b";
+            }
+
+            switchScreen('screen-eliminated');
         }
 
         function switchScreen(screenId) {
