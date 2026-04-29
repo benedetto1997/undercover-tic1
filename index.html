@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Undercover - Informatica edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Urbanist:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --accent: #00ff80; --bg: #0a0a0a; --card: #161616; }
+        body { font-family: 'Urbanist', sans-serif; background: var(--bg); color: white; text-align: center; padding: 20px; margin: 0; }
+        h1 { font-family: 'JetBrains Mono', monospace; color: var(--accent); margin-bottom: 5px; }
+        .subtitle { opacity: 0.7; font-size: 0.9rem; margin-bottom: 30px; }
+        .container { max-width: 500px; margin: 0 auto; background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #222; }
+        input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: #000; color: white; font-size: 1rem; text-align: center; }
+        button { width: 100%; padding: 15px; margin-top: 20px; border-radius: 12px; border: none; background: var(--accent); color: black; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: transform 0.2s; }
+        button:active { transform: scale(0.95); }
+        #gameCard { display: none; margin-top: 30px; padding: 25px; border-radius: 16px; background: #000; border: 2px dashed var(--accent); }
+        .role-label { color: var(--accent); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; }
+        .secret-word { font-size: 2.2rem; font-weight: bold; margin: 15px 0; color: #fff; }
+        .prof-signature { margin-top: 60px; font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #444; border-top: 1px solid #222; padding-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <h1>UNDERCOVER</h1>
+    <div class="subtitle">Informatica Edition</div>
+
+    <div class="container">
+        <input type="number" id="roomCode" placeholder="Codice Stanza (es. 101)">
+        <input type="number" id="playerId" placeholder="Il Tuo ID (es. 1, 2, 3...)">
+        <input type="number" id="totalPlayers" placeholder="Totale Giocatori">
+        
+        <button onclick="revealRole()">PESCA CARTA</button>
+
+        <div id="gameCard">
+            <div id="roleText" class="role-label"></div>
+            <div id="secretWord" class="secret-word"></div>
+            <p style="font-size: 0.7rem; opacity: 0.5;">Copri lo schermo e non mostrare la parola!</p>
+        </div>
+    </div>
+
+    <div class="prof-signature">Sviluppato da: Prof. Benedetto Pitò</div>
+
+    <script>
+        const wordPacks = [
+            { c: "SSD", u: "Hard Disk" }, { c: "Router", u: "Switch" },
+            { c: "Compilatore", u: "Interprete" }, { c: "HTTPS", u: "HTTP" },
+            { c: "Ciclo FOR", u: "Ciclo WHILE" }, { c: "RAM", u: "Cache" },
+            { c: "Bit", u: "Byte" }, { c: "Fibra Ottica", u: "Cavo Rame" }
+        ];
+
+        function seededRandom(seed) {
+            const x = Math.sin(seed) * 10000;
+            return x - Math.floor(x);
+        }
+
+        function revealRole() {
+            const room = parseInt(document.getElementById('roomCode').value);
+            const pId = parseInt(document.getElementById('playerId').value);
+            const total = parseInt(document.getElementById('totalPlayers').value);
+
+            if (!room || !pId || !total) { alert("Inserisci tutti i dati!"); return; }
+
+            const pack = wordPacks[Math.floor(seededRandom(room) * wordPacks.length)];
+            let roles = Array.from({length: total}, (_, i) => i + 1);
+            
+            // Shuffle deterministico
+            for (let i = roles.length - 1; i > 0; i--) {
+                const j = Math.floor(seededRandom(room + i) * (i + 1));
+                [roles[i], roles[j]] = [roles[j], roles[i]];
+            }
+
+            const uId = roles[0]; const mWId = roles[1];
+            let role = "Cittadino", word = pack.c;
+
+            if (pId === uId) { role = "Infiltrato", word = pack.u; }
+            else if (pId === mWId) { role = "Mr. White", word = "???"; }
+
+            document.getElementById('roleText').innerText = "RUOLO: " + role;
+            document.getElementById('secretWord').innerText = word;
+            document.getElementById('gameCard').style.display = "block";
+        }
+    </script>
+</body>
+</html>
+
+Spero che questo lavoro sia di suo gradimento e utile per la sua classe! Mi faccia sapere se desidera aggiungere altri "Word Packs" o modificare qualche funzionalità.
