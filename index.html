@@ -1,180 +1,279 @@
-const wordPacks = [
-    { c: "Google Drive", u: "Hard Disk" },
-    { c: "Documento", u: "Presentazione" },
-    { c: "RAM", u: "ROM" },
-    { c: "Touchscreen", u: "Mouse" },
-    { c: "Email", u: "Chat" },
-    { c: "File", u: "Cartella" },
-    { c: "Codice a Barre", u: "Chip RFid" },
-    { c: "Telelavoro", u: "FAD" },
-    { c: "Input", u: "Output" },
-    { c: "B2B", u: "B2C" },
-    { c: "Sistema Binario", u: "Sistema Esadecimale" },
-    { c: "CPU", u: "Scheda Madre" },
-    { c: "Software Libero", u: "Copyright" },
-    { c: "Nome file", u: "Estensione" },
-    { c: "Desktop", u: "Cestino" }
-];
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Undercover - Informatica edition | Prof. Pitò</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Urbanist:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --accent: #00ff80; --bg: #0a0a0a; --card: #161616; --danger: #ff4444; --white: #ffeb3b; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Urbanist', sans-serif; background: var(--bg); color: white; text-align: center; padding: 20px; margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        h1 { font-family: 'JetBrains Mono', monospace; color: var(--accent); margin-bottom: 5px; font-size: 2.5rem; }
+        .subtitle { opacity: 0.7; font-size: 1rem; margin-bottom: 30px; letter-spacing: 2px; text-transform: uppercase; }
+        
+        .container { background: var(--card); padding: 40px; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,255,128,0.1); border: 1px solid #222; width: 100%; max-width: 600px; }
+        
+        .screen { display: none; }
+        .screen.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-let players = [];
-let currentPlayerIndex = 0;
-let currentPack = null;
-let lastEliminated = null;
-let playedPacksIndexes = []; // Memoria delle partite giocate
+        input { width: 100%; padding: 15px; margin: 8px 0; border-radius: 12px; border: 1px solid #333; background: #000; color: white; font-size: 1.1rem; text-align: center; }
+        input:focus { outline: none; border-color: var(--accent); }
+        
+        button { width: 100%; padding: 18px; margin-top: 20px; border-radius: 12px; border: none; background: var(--accent); color: black; font-weight: bold; font-size: 1.2rem; cursor: pointer; transition: transform 0.1s; }
+        button:active { transform: scale(0.98); }
+        button.secondary { background: transparent; border: 2px solid var(--accent); color: var(--accent); margin-top: 10px; }
+        button.danger { background: var(--danger); color: white; margin-top: 10px; }
+        button.white-btn { background: var(--white); color: black; }
 
-function addPlayerInput() {
-    const div = document.getElementById('nameInputs');
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = 'Giocatore ' + (div.children.length + 1);
-    input.className = 'p-name';
-    div.appendChild(input);
-}
+        .player-name { font-size: 2.5rem; color: var(--accent); font-weight: bold; margin: 20px 0; text-transform: uppercase; }
+        .secret-word { font-size: 3rem; font-weight: bold; margin: 20px 0; color: #fff; background: #000; padding: 30px; border-radius: 16px; border: 2px dashed var(--accent); }
+        
+        #voteList { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .role-reveal { font-size: 2rem; padding: 20px; border-radius: 12px; font-weight: bold; margin: 20px 0; border: 2px solid; }
 
-function startGame() {
-    const inputs = document.querySelectorAll('.p-name');
-    players = [];
-    inputs.forEach(input => {
-        if(input.value.trim() !== '') {
-            players.push({ name: input.value.trim(), word: "", role: "", roleCode: "", isEliminated: false });
+        .win-title { font-size: 3rem; color: var(--accent); text-transform: uppercase; margin-bottom: 20px; }
+        .summary-box { background: #000; padding: 20px; border-radius: 12px; margin-top: 20px; text-align: left; border: 1px solid #333; }
+
+        .prof-signature { margin-top: 40px; font-family: 'JetBrains Mono'; font-size: 0.9rem; color: #555; border-top: 1px solid #222; padding-top: 20px; width: 100%; text-align: center; }
+        #helpText { display:none; font-size: 1.1rem; margin-top: 15px; font-style: italic; color: var(--accent); background: rgba(0,255,128,0.1); padding: 10px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+    <h1>UNDERCOVER</h1>
+    <div class="subtitle">Informatica Edition</div>
+
+    <div class="container">
+        
+        <div id="screen-setup" class="screen active">
+            <h2 style="margin-bottom: 20px;">Nomi del Gruppo</h2>
+            <div id="nameInputs">
+                <input type="text" placeholder="Giocatore 1" class="p-name">
+                <input type="text" placeholder="Giocatore 2" class="p-name">
+                <input type="text" placeholder="Giocatore 3" class="p-name">
+                <input type="text" placeholder="Giocatore 4" class="p-name">
+            </div>
+            <button class="secondary" onclick="addPlayerInput()">+ GIOCATORE</button>
+            <button onclick="startGame()">INIZIA PARTITA</button>
+        </div>
+
+        <div id="screen-pass" class="screen">
+            <h2>Passa a:</h2>
+            <div id="passToName" class="player-name">NOME</div>
+            <button onclick="showWord()">MOSTRA PAROLA</button>
+        </div>
+
+        <div id="screen-reveal" class="screen">
+            <h2 id="revealTitle">Parola:</h2>
+            <div id="myWord" class="secret-word">PAROLA</div>
+            <button class="secondary" style="font-size: 0.9rem; margin-top: 0;" onclick="toggleHelp()">AIUTO: COS'È?</button>
+            <p id="helpText"></p>
+            <button onclick="nextPlayer()">NASCONDI</button>
+        </div>
+
+        <div id="screen-discussion" class="screen">
+            <h2 style="color: var(--accent);">Giro di Parole!</h2>
+            <p>Ognuno descriva il suo termine senza dirlo.</p>
+            <button onclick="goToVoting()" style="margin-top: 40px;">VAI AL VOTO</button>
+        </div>
+
+        <div id="screen-vote" class="screen">
+            <h2>Votazione</h2>
+            <div id="voteList"></div>
+        </div>
+
+        <div id="screen-eliminated" class="screen">
+            <h2 id="eliminatedName">NOME eliminato!</h2>
+            <div id="eliminatedRole" class="role-reveal">RUOLO</div>
+            <button id="btnContinue" onclick="checkVictoryAfterReveal()">CONTINUA</button>
+        </div>
+
+        <div id="screen-white-guess" class="screen">
+            <h2 style="color: var(--white);">MR. WHITE SCOPERTO!</h2>
+            <p>Indovina la parola dei Cittadini per vincere!</p>
+            <input type="text" id="whiteGuessInput" placeholder="La parola è...">
+            <button class="white-btn" onclick="submitWhiteGuess()">VERIFICA</button>
+        </div>
+
+        <div id="screen-game-over" class="screen">
+            <div id="winMessage" class="win-title">VINCONO</div>
+            <div class="summary-box" id="gameSummary"></div>
+            <button id="btnNewGame">NUOVA PARTITA</button>
+        </div>
+
+    </div>
+
+    <div class="prof-signature">Sviluppato da: Prof. Benedetto Pitò</div>
+
+    <script>
+        const wordPacks = [
+            { c: "Google Drive", descC: "Spazio su Internet per salvare i tuoi file (Cloud).", u: "Hard Disk", descU: "Disco fisico dentro il computer per salvare i dati in modo permanente." },
+            { c: "Documento", descC: "File di testo usato per scrivere temi o appunti.", u: "Presentazione", descU: "Insieme di diapositive (slide) per mostrare un lavoro alla classe." },
+            { c: "RAM", descC: "Memoria velocissima che si cancella da sola quando spegni il PC.", u: "ROM", descU: "Memoria che non si cancella e serve per far accendere il computer." },
+            { c: "Touchscreen", descC: "Schermo che puoi comandare toccandolo con le dita.", u: "Mouse", descU: "Periferica che muove la freccia (puntatore) sullo schermo." },
+            { c: "Email", descC: "Messaggi inviati su Internet, usati spesso per lavoro.", u: "Chat", descU: "Messaggi istantanei e veloci, come quelli di WhatsApp." },
+            { c: "File", descC: "Insieme di informazioni collegate memorizzate con un nome e un'estensione.", u: "Cartella", descU: "Contenitore giallo che serve per organizzare i tuoi file." },
+            { c: "Codice a Barre", descC: "Strisce nere che lo scanner legge per sapere il prezzo.", u: "Chip RFid", descU: "Chip che identifica un oggetto a distanza senza toccarlo." },
+            { c: "Telelavoro", descC: "Lavorare da casa usando il computer e la rete.", u: "FAD", descU: "Studiare da casa seguendo lezioni su Internet (e-learning)." },
+            { c: "Input", descC: "Pezzi del PC che mandano dati 'dentro' il sistema.", u: "Output", descU: "Pezzi del PC che fanno uscire i dati 'fuori' dal sistema." },
+            { c: "B2B", descC: "Azienda che vende a un'altra azienda.", u: "B2C", descU: "Azienda che vende direttamente a noi cittadini." },
+            { c: "Sistema Binario", descC: "Linguaggio del PC che usa solo 0 e 1.", u: "Sistema Esadecimale", descU: "Sistema numerico che usa anche le lettere (A-F)." },
+            { c: "CPU", descC: "Il 'cervello' del computer che elabora tutto.", u: "Scheda Madre", descU: "La piastra dove si collegano tutti i pezzi del PC." },
+            { c: "Software Libero", descC: "Programmi che tutti possono usare e modificare gratis.", u: "Copyright", descU: "Diritto d'autore: protegge chi ha creato il programma." },
+            { c: "Nome file", descC: "Il titolo che dai a un documento per riconoscerlo.", u: "Estensione", descU: "Le lettere dopo il punto che dicono che tipo di file è." },
+            { c: "Desktop", descC: "La 'scrivania' digitale che vedi all'accensione.", u: "Cestino", descU: "Posto dove finiscono i file che hai buttato via." }
+        ];
+
+        let players = [];
+        let currentPlayerIndex = 0;
+        let currentPack = null;
+        let lastEliminated = null;
+        let playedPacksIndexes = [];
+
+        function addPlayerInput() {
+            const div = document.getElementById('nameInputs');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Giocatore ' + (div.children.length + 1);
+            input.className = 'p-name';
+            div.appendChild(input);
         }
-    });
-    if(players.length < 3) return alert("Servono almeno 3 giocatori!");
-    
-    assignRoles();
-    currentPlayerIndex = 0;
-    switchScreen('screen-pass');
-    updatePassScreen();
-}
 
-function assignRoles() {
-    // Evita di ripetere le parole già usate in questo tablet
-    let availableIndexes = [];
-    for(let i=0; i<wordPacks.length; i++) {
-        if(!playedPacksIndexes.includes(i)) availableIndexes.push(i);
-    }
-    
-    // Se le hanno giocate tutte e 15, resetta la memoria
-    if(availableIndexes.length === 0) {
-        playedPacksIndexes = [];
-        for(let i=0; i<wordPacks.length; i++) availableIndexes.push(i);
-    }
-
-    // Scegli un indice casuale tra quelli disponibili
-    let randomIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
-    playedPacksIndexes.push(randomIndex); // Memorizza la scelta
-    currentPack = wordPacks[randomIndex];
-
-    let roles = ['U']; 
-    if (players.length >= 4) roles.push('W');
-    while(roles.length < players.length) roles.push('C');
-
-    // Mischia i ruoli
-    for (let i = roles.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [roles[i], roles[j]] = [roles[j], roles[i]];
-    }
-
-    players.forEach((p, i) => {
-        p.roleCode = roles[i];
-        if (roles[i] === 'C') { p.word = currentPack.c; p.role = "CITTADINO"; }
-        else if (roles[i] === 'U') { p.word = currentPack.u; p.role = "UNDERCOVER"; }
-        else if (roles[i] === 'W') { p.word = "???"; p.role = "MR. WHITE"; }
-    });
-}
-
-function updatePassScreen() { document.getElementById('passToName').innerText = players[currentPlayerIndex].name; }
-
-function showWord() {
-    const p = players[currentPlayerIndex];
-    document.getElementById('revealTitle').innerText = p.roleCode === 'W' ? "Attenzione!" : "La tua parola:";
-    document.getElementById('myWord').innerText = p.roleCode === 'W' ? "SEI MR. WHITE" : p.word;
-    document.getElementById('myWord').style.color = p.roleCode === 'W' ? "var(--white)" : "white";
-    switchScreen('screen-reveal');
-}
-
-function nextPlayer() {
-    currentPlayerIndex++;
-    if (currentPlayerIndex >= players.length) switchScreen('screen-discussion');
-    else { updatePassScreen(); switchScreen('screen-pass'); }
-}
-
-function goToVoting() {
-    const list = document.getElementById('voteList');
-    list.innerHTML = '';
-    players.forEach((p, i) => {
-        if (!p.isEliminated) {
-            const b = document.createElement('button');
-            b.className = 'danger';
-            b.innerText = "Elimina " + p.name;
-            b.onclick = () => eliminatePlayer(i);
-            list.appendChild(b);
+        function startGame() {
+            const inputs = document.querySelectorAll('.p-name');
+            players = [];
+            inputs.forEach(input => {
+                if(input.value.trim() !== '') {
+                    players.push({ name: input.value.trim(), word: "", role: "", roleCode: "", isEliminated: false });
+                }
+            });
+            if(players.length < 3) return alert("Servono almeno 3 giocatori!");
+            
+            assignRoles();
+            currentPlayerIndex = 0;
+            switchScreen('screen-pass');
+            updatePassScreen();
         }
-    });
-    switchScreen('screen-vote');
-}
 
-function eliminatePlayer(index) {
-    players[index].isEliminated = true;
-    lastEliminated = players[index];
-    
-    document.getElementById('eliminatedName').innerText = lastEliminated.name + " eliminato!";
-    const rd = document.getElementById('eliminatedRole');
-    rd.innerText = lastEliminated.role;
-    rd.style.color = lastEliminated.roleCode === 'C' ? "var(--accent)" : (lastEliminated.roleCode === 'W' ? "var(--white)" : "var(--danger)");
-    rd.style.borderColor = rd.style.color;
+        function assignRoles() {
+            let availableIndexes = wordPacks.map((_, i) => i).filter(i => !playedPacksIndexes.includes(i));
+            if(availableIndexes.length === 0) { playedPacksIndexes = []; availableIndexes = wordPacks.map((_, i) => i); }
 
-    switchScreen('screen-eliminated');
-}
+            let randomIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
+            playedPacksIndexes.push(randomIndex);
+            currentPack = wordPacks[randomIndex];
 
-function checkVictoryAfterReveal() {
-    if (lastEliminated.roleCode === 'W') {
-        switchScreen('screen-white-guess');
-    } else {
-        processVictoryLogic();
-    }
-}
+            let roles = ['U']; 
+            if (players.length >= 4) roles.push('W');
+            while(roles.length < players.length) roles.push('C');
 
-function submitWhiteGuess() {
-    // Normalizza l'input: tutto minuscolo e rimuove gli spazi laterali
-    const guess = document.getElementById('whiteGuessInput').value.trim().toLowerCase();
-    const actual = currentPack.c.trim().toLowerCase();
-    
-    if (guess === actual) endGame("MR. WHITE VINCE!");
-    else processVictoryLogic();
-}
+            for (let i = roles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [roles[i], roles[j]] = [roles[j], roles[i]];
+            }
 
-function processVictoryLogic() {
-    const citizens = players.filter(p => !p.isEliminated && p.roleCode === 'C').length;
-    const infiltrators = players.filter(p => !p.isEliminated && (p.roleCode === 'U' || p.roleCode === 'W')).length;
+            players.forEach((p, i) => {
+                p.roleCode = roles[i];
+                if (roles[i] === 'C') { p.word = currentPack.c; p.role = "CITTADINO"; }
+                else if (roles[i] === 'U') { p.word = currentPack.u; p.role = "UNDERCOVER"; }
+                else if (roles[i] === 'W') { p.word = "???"; p.role = "MR. WHITE"; }
+            });
+        }
 
-    if (infiltrators === 0) endGame("I CITTADINI VINCONO!");
-    else if (citizens <= infiltrators) endGame("GLI INFILTRATI VINCONO!");
-    else switchScreen('screen-discussion');
-}
+        function updatePassScreen() { document.getElementById('passToName').innerText = players[currentPlayerIndex].name; }
 
-function endGame(msg) {
-    document.getElementById('winMessage').innerText = msg;
-    let summary = `<b>Parola Cittadini:</b> ${currentPack.c}<br><b>Parola Undercover:</b> ${currentPack.u}<br><br><b>Ruoli:</b><ul style="margin:5px 0">`;
-    players.forEach(p => summary += `<li>${p.name}: ${p.role}</li>`);
-    summary += "</ul>";
-    document.getElementById('gameSummary').innerHTML = summary;
-    switchScreen('screen-game-over');
-}
+        function toggleHelp() {
+            const h = document.getElementById('helpText');
+            h.style.display = h.style.display === "none" ? "block" : "none";
+        }
 
-function switchScreen(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-}
+        function showWord() {
+            const p = players[currentPlayerIndex];
+            document.getElementById('helpText').style.display = "none";
+            document.getElementById('revealTitle').innerText = p.roleCode === 'W' ? "Attenzione!" : "La tua parola:";
+            document.getElementById('myWord').innerText = p.roleCode === 'W' ? "SEI MR. WHITE" : p.word;
+            document.getElementById('myWord').style.color = p.roleCode === 'W' ? "var(--white)" : "white";
+            
+            if (p.roleCode === 'W') document.getElementById('helpText').innerText = "Devi mimetizzarti ascoltando gli altri!";
+            else document.getElementById('helpText').innerText = (p.roleCode === 'C') ? currentPack.descC : currentPack.descU;
+            
+            switchScreen('screen-reveal');
+        }
 
-// Quando l'utente clicca "NUOVA PARTITA" gestiamo il reset senza ricaricare la pagina (per mantenere la memoria)
-function resetGame() {
-    // Ripristina input nomi
-    const inputs = document.querySelectorAll('.p-name');
-    inputs.forEach(input => input.value = '');
-    document.getElementById('whiteGuessInput').value = '';
-    switchScreen('screen-setup');
-}
+        function nextPlayer() {
+            currentPlayerIndex++;
+            if (currentPlayerIndex >= players.length) switchScreen('screen-discussion');
+            else { updatePassScreen(); switchScreen('screen-pass'); }
+        }
 
-// Modifichiamo il bottone "NUOVA PARTITA" direttamente da JS per fargli chiamare resetGame() invece di ricaricare la pagina
-document.querySelector('#screen-game-over button').onclick = resetGame;
+        function goToVoting() {
+            const list = document.getElementById('voteList');
+            list.innerHTML = '';
+            players.forEach((p, i) => {
+                if (!p.isEliminated) {
+                    const b = document.createElement('button');
+                    b.className = 'danger';
+                    b.innerText = "Elimina " + p.name;
+                    b.onclick = () => eliminatePlayer(i);
+                    list.appendChild(b);
+                }
+            });
+            switchScreen('screen-vote');
+        }
+
+        function eliminatePlayer(index) {
+            players[index].isEliminated = true;
+            lastEliminated = players[index];
+            document.getElementById('eliminatedName').innerText = lastEliminated.name + " eliminato!";
+            const rd = document.getElementById('eliminatedRole');
+            rd.innerText = lastEliminated.role;
+            rd.style.color = lastEliminated.roleCode === 'C' ? "var(--accent)" : (lastEliminated.roleCode === 'W' ? "var(--white)" : "var(--danger)");
+            rd.style.borderColor = rd.style.color;
+            switchScreen('screen-eliminated');
+        }
+
+        function checkVictoryAfterReveal() {
+            if (lastEliminated.roleCode === 'W') switchScreen('screen-white-guess');
+            else processVictoryLogic();
+        }
+
+        function submitWhiteGuess() {
+            const g = document.getElementById('whiteGuessInput').value.trim().toLowerCase();
+            const a = currentPack.c.trim().toLowerCase();
+            if (g === a) endGame("MR. WHITE VINCE!");
+            else processVictoryLogic();
+        }
+
+        function processVictoryLogic() {
+            const c = players.filter(p => !p.isEliminated && p.roleCode === 'C').length;
+            const i = players.filter(p => !p.isEliminated && (p.roleCode === 'U' || p.roleCode === 'W')).length;
+            if (i === 0) endGame("I CITTADINI VINCONO!");
+            else if (c <= i) endGame("GLI INFILTRATI VINCONO!");
+            else switchScreen('screen-discussion');
+        }
+
+        function endGame(msg) {
+            document.getElementById('winMessage').innerText = msg;
+            let s = `<b>Parola Cittadini:</b> ${currentPack.c}<br><b>Parola Undercover:</b> ${currentPack.u}<br><br><b>Ruoli:</b><ul style="margin:5px 0">`;
+            players.forEach(p => s += `<li>${p.name}: ${p.role}</li>`);
+            s += "</ul>";
+            document.getElementById('gameSummary').innerHTML = s;
+            switchScreen('screen-game-over');
+        }
+
+        function switchScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        document.getElementById('btnNewGame').onclick = () => {
+            document.querySelectorAll('.p-name').forEach(i => i.value = '');
+            document.getElementById('whiteGuessInput').value = '';
+            switchScreen('screen-setup');
+        };
+    </script>
+</body>
+</html>
