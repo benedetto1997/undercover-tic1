@@ -3,21 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Undercover - Informatica edition</title>
+    <title>Undercover - Informatica Edition | Prof. Pitò</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Urbanist:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --accent: #00ff80; --bg: #0a0a0a; --card: #161616; }
-        body { font-family: 'Urbanist', sans-serif; background: var(--bg); color: white; text-align: center; padding: 20px; margin: 0; }
-        h1 { font-family: 'JetBrains Mono', monospace; color: var(--accent); margin-bottom: 5px; }
-        .subtitle { opacity: 0.7; font-size: 0.9rem; margin-bottom: 30px; }
-        .container { max-width: 500px; margin: 0 auto; background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #222; }
-        input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: #000; color: white; font-size: 1rem; text-align: center; }
-        button { width: 100%; padding: 15px; margin-top: 20px; border-radius: 12px; border: none; background: var(--accent); color: black; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: transform 0.2s; }
-        button:active { transform: scale(0.95); }
-        #gameCard { display: none; margin-top: 30px; padding: 25px; border-radius: 16px; background: #000; border: 2px dashed var(--accent); }
-        .role-label { color: var(--accent); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; }
-        .secret-word { font-size: 2.2rem; font-weight: bold; margin: 15px 0; color: #fff; }
-        .prof-signature { margin-top: 60px; font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #444; border-top: 1px solid #222; padding-top: 20px; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Urbanist', sans-serif; background: var(--bg); color: white; text-align: center; padding: 20px; margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        h1 { font-family: 'JetBrains Mono', monospace; color: var(--accent); margin-bottom: 5px; font-size: 2.5rem; }
+        .subtitle { opacity: 0.7; font-size: 1rem; margin-bottom: 30px; letter-spacing: 2px; text-transform: uppercase; }
+        
+        .container { background: var(--card); padding: 40px; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,255,128,0.1); border: 1px solid #222; width: 100%; max-width: 600px; }
+        
+        /* Gestione delle schermate */
+        .screen { display: none; }
+        .screen.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        input { width: 100%; padding: 15px; margin: 8px 0; border-radius: 12px; border: 1px solid #333; background: #000; color: white; font-size: 1.1rem; text-align: center; }
+        input:focus { outline: none; border-color: var(--accent); }
+        
+        button { width: 100%; padding: 18px; margin-top: 20px; border-radius: 12px; border: none; background: var(--accent); color: black; font-weight: bold; font-size: 1.2rem; cursor: pointer; transition: transform 0.1s, background 0.2s; }
+        button:active { transform: scale(0.98); }
+        button.secondary { background: transparent; border: 2px solid var(--accent); color: var(--accent); margin-top: 10px; }
+
+        .player-name { font-size: 2.5rem; color: var(--accent); font-weight: bold; margin: 20px 0; text-transform: uppercase; }
+        .secret-word { font-size: 3rem; font-weight: bold; margin: 30px 0; color: #fff; background: #000; padding: 30px; border-radius: 16px; border: 2px dashed var(--accent); }
+        .warning { color: #ff4444; font-size: 0.9rem; margin-top: 20px; font-weight: bold; }
+
+        .prof-signature { margin-top: 40px; font-family: 'JetBrains Mono'; font-size: 0.9rem; color: #555; border-top: 1px solid #222; padding-top: 20px; width: 100%; text-align: center; }
     </style>
 </head>
 <body>
@@ -26,62 +40,163 @@
     <div class="subtitle">Informatica Edition</div>
 
     <div class="container">
-        <input type="number" id="roomCode" placeholder="Codice Stanza (es. 101)">
-        <input type="number" id="playerId" placeholder="Il Tuo ID (es. 1, 2, 3...)">
-        <input type="number" id="totalPlayers" placeholder="Totale Giocatori">
         
-        <button onclick="revealRole()">PESCA CARTA</button>
-
-        <div id="gameCard">
-            <div id="roleText" class="role-label"></div>
-            <div id="secretWord" class="secret-word"></div>
-            <p style="font-size: 0.7rem; opacity: 0.5;">Copri lo schermo e non mostrare la parola!</p>
+        <div id="screen-setup" class="screen active">
+            <h2 style="margin-bottom: 20px;">Inserite i nomi del gruppo</h2>
+            <div id="nameInputs">
+                <input type="text" placeholder="Nome Giocatore 1" class="p-name">
+                <input type="text" placeholder="Nome Giocatore 2" class="p-name">
+                <input type="text" placeholder="Nome Giocatore 3" class="p-name">
+                <input type="text" placeholder="Nome Giocatore 4" class="p-name">
+            </div>
+            <button class="secondary" onclick="addPlayerInput()">+ AGGIUNGI GIOCATORE</button>
+            <button onclick="startGame()">INIZIA PARTITA</button>
         </div>
+
+        <div id="screen-pass" class="screen">
+            <h2>Passa il tablet a:</h2>
+            <div id="passToName" class="player-name">NOME</div>
+            <p style="opacity: 0.7;">Assicurati che nessuno stia guardando lo schermo.</p>
+            <button onclick="showWord()">MOSTRA LA MIA PAROLA</button>
+        </div>
+
+        <div id="screen-reveal" class="screen">
+            <h2 id="revealTitle">La tua parola è:</h2>
+            <div id="myWord" class="secret-word">PAROLA</div>
+            <p class="warning">Memorizza la parola e non dirla a nessuno!</p>
+            <button onclick="nextPlayer()">NASCONDI E PASSA</button>
+        </div>
+
+        <div id="screen-end" class="screen">
+            <h2 style="color: var(--accent); font-size: 2.5rem; margin-bottom: 20px;">Tutti pronti!</h2>
+            <p style="font-size: 1.2rem; line-height: 1.5;">Tutti hanno visto la propria carta.</p>
+            <p style="font-size: 1.2rem; line-height: 1.5;">Iniziate il giro di descrizioni. Chi sarà l'infiltrato?</p>
+            <button onclick="location.reload()" style="margin-top: 40px;">NUOVA PARTITA</button>
+        </div>
+
     </div>
 
     <div class="prof-signature">Sviluppato da: Prof. Benedetto Pitò</div>
 
     <script>
         const wordPacks = [
-            { c: "SSD", u: "Hard Disk" }, { c: "Router", u: "Switch" },
-            { c: "Compilatore", u: "Interprete" }, { c: "HTTPS", u: "HTTP" },
-            { c: "Ciclo FOR", u: "Ciclo WHILE" }, { c: "RAM", u: "Cache" },
-            { c: "Bit", u: "Byte" }, { c: "Fibra Ottica", u: "Cavo Rame" }
+            { c: "SSD", u: "Hard Disk" },
+            { c: "Router", u: "Switch" },
+            { c: "Compilatore", u: "Interprete" },
+            { c: "HTTPS", u: "HTTP" },
+            { c: "Ciclo FOR", u: "Ciclo WHILE" },
+            { c: "RAM", u: "Cache" },
+            { c: "Bit", u: "Byte" },
+            { c: "Mouse", u: "Touchpad" },
+            { c: "Frontend", u: "Backend" }
         ];
 
-        function seededRandom(seed) {
-            const x = Math.sin(seed) * 10000;
-            return x - Math.floor(x);
+        let players = [];
+        let currentPlayerIndex = 0;
+
+        function addPlayerInput() {
+            const div = document.getElementById('nameInputs');
+            const inputCount = div.getElementsByTagName('input').length + 1;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Nome Giocatore ' + inputCount;
+            input.className = 'p-name';
+            div.appendChild(input);
         }
 
-        function revealRole() {
-            const room = parseInt(document.getElementById('roomCode').value);
-            const pId = parseInt(document.getElementById('playerId').value);
-            const total = parseInt(document.getElementById('totalPlayers').value);
-
-            if (!room || !pId || !total) { alert("Inserisci tutti i dati!"); return; }
-
-            const pack = wordPacks[Math.floor(seededRandom(room) * wordPacks.length)];
-            let roles = Array.from({length: total}, (_, i) => i + 1);
+        function startGame() {
+            const inputs = document.querySelectorAll('.p-name');
+            players = [];
             
-            // Shuffle deterministico
+            inputs.forEach(input => {
+                if(input.value.trim() !== '') {
+                    // Creiamo l'oggetto giocatore vuoto per ora
+                    players.push({ name: input.value.trim(), word: "", isWhite: false });
+                }
+            });
+
+            if(players.length < 3) {
+                alert("Servono almeno 3 giocatori!");
+                return;
+            }
+
+            assignRoles();
+            currentPlayerIndex = 0;
+            switchScreen('screen-pass');
+            updatePassScreen();
+        }
+
+        function assignRoles() {
+            // Scegliamo un pacchetto di parole a caso
+            const pack = wordPacks[Math.floor(Math.random() * wordPacks.length)];
+            
+            // Determiniamo i ruoli: 1 Undercover. Se >= 4 giocatori, anche 1 Mr White.
+            let roles = [];
+            roles.push('U'); // Un undercover
+            if (players.length >= 4) {
+                roles.push('W'); // Un Mr White
+            }
+            
+            // I restanti sono Cittadini (C)
+            while(roles.length < players.length) {
+                roles.push('C');
+            }
+
+            // Mischiamo l'array dei ruoli (Algoritmo di Fisher-Yates)
             for (let i = roles.length - 1; i > 0; i--) {
-                const j = Math.floor(seededRandom(room + i) * (i + 1));
+                const j = Math.floor(Math.random() * (i + 1));
                 [roles[i], roles[j]] = [roles[j], roles[i]];
             }
 
-            const uId = roles[0]; const mWId = roles[1];
-            let role = "Cittadino", word = pack.c;
+            // Assegniamo le parole ai giocatori in base al ruolo mischiato
+            for(let i = 0; i < players.length; i++) {
+                if (roles[i] === 'C') {
+                    players[i].word = pack.c;
+                } else if (roles[i] === 'U') {
+                    players[i].word = pack.u;
+                } else if (roles[i] === 'W') {
+                    players[i].word = "???";
+                    players[i].isWhite = true;
+                }
+            }
+        }
 
-            if (pId === uId) { role = "Infiltrato", word = pack.u; }
-            else if (pId === mWId) { role = "Mr. White", word = "???"; }
+        function updatePassScreen() {
+            document.getElementById('passToName').innerText = players[currentPlayerIndex].name;
+        }
 
-            document.getElementById('roleText').innerText = "RUOLO: " + role;
-            document.getElementById('secretWord').innerText = word;
-            document.getElementById('gameCard').style.display = "block";
+        function showWord() {
+            const player = players[currentPlayerIndex];
+            
+            if (player.isWhite) {
+                document.getElementById('revealTitle').innerText = "Attenzione!";
+                document.getElementById('myWord').innerText = "SEI MR. WHITE";
+                document.getElementById('myWord').style.color = "#ffeb3b";
+                document.getElementById('myWord').style.borderColor = "#ffeb3b";
+            } else {
+                document.getElementById('revealTitle').innerText = "La tua parola è:";
+                document.getElementById('myWord').innerText = player.word;
+                document.getElementById('myWord').style.color = "#fff";
+                document.getElementById('myWord').style.borderColor = "var(--accent)";
+            }
+
+            switchScreen('screen-reveal');
+        }
+
+        function nextPlayer() {
+            currentPlayerIndex++;
+            if (currentPlayerIndex >= players.length) {
+                switchScreen('screen-end');
+            } else {
+                updatePassScreen();
+                switchScreen('screen-pass');
+            }
+        }
+
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
         }
     </script>
 </body>
 </html>
-
-Spero che questo lavoro sia di suo gradimento e utile per la sua classe! Mi faccia sapere se desidera aggiungere altri "Word Packs" o modificare qualche funzionalità.
