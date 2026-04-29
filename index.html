@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Undercover - Informatica edition | Prof. Pitò</title>
+    <title>Undercover - Informatica Edition | Prof. Pitò</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Urbanist:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --accent: #00ff80; --bg: #0a0a0a; --card: #161616; --danger: #ff4444; --white: #ffeb3b; }
@@ -34,11 +34,11 @@
         #voteList { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
         .role-reveal { font-size: 2rem; padding: 20px; border-radius: 12px; font-weight: bold; margin: 20px 0; border: 2px solid; }
 
-        .win-title { font-size: 3rem; color: var(--accent); text-transform: uppercase; margin-bottom: 20px; }
-        .summary-box { background: #000; padding: 20px; border-radius: 12px; margin-top: 20px; text-align: left; border: 1px solid #333; }
+        .win-title { font-size: 2.5rem; color: var(--accent); text-transform: uppercase; margin-bottom: 20px; }
+        .summary-box { background: #000; padding: 20px; border-radius: 12px; margin-top: 20px; text-align: left; border: 1px solid #333; font-size: 0.95rem; }
 
         .prof-signature { margin-top: 40px; font-family: 'JetBrains Mono'; font-size: 0.9rem; color: #555; border-top: 1px solid #222; padding-top: 20px; width: 100%; text-align: center; }
-        #helpText { display:none; font-size: 1.1rem; margin-top: 15px; font-style: italic; color: var(--accent); background: rgba(0,255,128,0.1); padding: 10px; border-radius: 8px; }
+        #helpText { display:none; font-size: 1.1rem; margin-top: 15px; font-style: italic; color: var(--accent); background: rgba(0,255,128,0.1); padding: 12px; border-radius: 8px; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -56,7 +56,7 @@
                 <input type="text" placeholder="Giocatore 3" class="p-name">
                 <input type="text" placeholder="Giocatore 4" class="p-name">
             </div>
-            <button class="secondary" onclick="addPlayerInput()">+ GIOCATORE</button>
+            <button class="secondary" onclick="addPlayerInput()">+ AGGIUNGI NOME</button>
             <button onclick="startGame()">INIZIA PARTITA</button>
         </div>
 
@@ -69,14 +69,14 @@
         <div id="screen-reveal" class="screen">
             <h2 id="revealTitle">Parola:</h2>
             <div id="myWord" class="secret-word">PAROLA</div>
-            <button class="secondary" style="font-size: 0.9rem; margin-top: 0;" onclick="toggleHelp()">AIUTO: COS'È?</button>
+            <button class="secondary" style="font-size: 0.9rem;" onclick="toggleHelp()">AIUTO: COS'È?</button>
             <p id="helpText"></p>
-            <button onclick="nextPlayer()">NASCONDI</button>
+            <button onclick="nextPlayer()">NASCONDI E PASSA</button>
         </div>
 
         <div id="screen-discussion" class="screen">
             <h2 style="color: var(--accent);">Giro di Parole!</h2>
-            <p>Ognuno descriva il suo termine senza dirlo.</p>
+            <p>Descrivete il termine senza dirlo esplicitamente.</p>
             <button onclick="goToVoting()" style="margin-top: 40px;">VAI AL VOTO</button>
         </div>
 
@@ -86,7 +86,7 @@
         </div>
 
         <div id="screen-eliminated" class="screen">
-            <h2 id="eliminatedName">NOME eliminato!</h2>
+            <h2 id="eliminatedName">ELIMINATO!</h2>
             <div id="eliminatedRole" class="role-reveal">RUOLO</div>
             <button id="btnContinue" onclick="checkVictoryAfterReveal()">CONTINUA</button>
         </div>
@@ -101,7 +101,8 @@
         <div id="screen-game-over" class="screen">
             <div id="winMessage" class="win-title">VINCONO</div>
             <div class="summary-box" id="gameSummary"></div>
-            <button id="btnNewGame">NUOVA PARTITA</button>
+            <button onclick="restartGame()">RIGIOCA (Stessi Nomi)</button>
+            <button class="secondary" onclick="resetAll()">RESET (Cambia Gruppo)</button>
         </div>
 
     </div>
@@ -146,12 +147,43 @@
             const inputs = document.querySelectorAll('.p-name');
             players = [];
             inputs.forEach(input => {
-                if(input.value.trim() !== '') {
-                    players.push({ name: input.value.trim(), word: "", role: "", roleCode: "", isEliminated: false });
+                const val = input.value.trim();
+                if(val !== '') {
+                    players.push({ name: val, word: "", role: "", roleCode: "", isEliminated: false });
                 }
             });
             if(players.length < 3) return alert("Servono almeno 3 giocatori!");
             
+            initRound();
+        }
+
+        // Nuova funzione per gestire "Rigioca"
+        function restartGame() {
+            // Reset stato eliminazioni e ruoli ma tiene i nomi
+            players.forEach(p => {
+                p.isEliminated = false;
+                p.word = "";
+                p.role = "";
+                p.roleCode = "";
+            });
+            document.getElementById('whiteGuessInput').value = '';
+            initRound();
+        }
+
+        function resetAll() {
+            players = [];
+            playedPacksIndexes = [];
+            document.getElementById('nameInputs').innerHTML = `
+                <input type="text" placeholder="Giocatore 1" class="p-name">
+                <input type="text" placeholder="Giocatore 2" class="p-name">
+                <input type="text" placeholder="Giocatore 3" class="p-name">
+                <input type="text" placeholder="Giocatore 4" class="p-name">
+            `;
+            document.getElementById('whiteGuessInput').value = '';
+            switchScreen('screen-setup');
+        }
+
+        function initRound() {
             assignRoles();
             currentPlayerIndex = 0;
             switchScreen('screen-pass');
@@ -170,6 +202,7 @@
             if (players.length >= 4) roles.push('W');
             while(roles.length < players.length) roles.push('C');
 
+            // Shuffle Ruoli
             for (let i = roles.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [roles[i], roles[j]] = [roles[j], roles[i]];
@@ -197,7 +230,7 @@
             document.getElementById('myWord').innerText = p.roleCode === 'W' ? "SEI MR. WHITE" : p.word;
             document.getElementById('myWord').style.color = p.roleCode === 'W' ? "var(--white)" : "white";
             
-            if (p.roleCode === 'W') document.getElementById('helpText').innerText = "Devi mimetizzarti ascoltando gli altri!";
+            if (p.roleCode === 'W') document.getElementById('helpText').innerText = "Non hai una parola! Ascolta gli altri per capire di cosa parlano e prova a mimetizzarti.";
             else document.getElementById('helpText').innerText = (p.roleCode === 'C') ? currentPack.descC : currentPack.descU;
             
             switchScreen('screen-reveal');
@@ -257,7 +290,7 @@
 
         function endGame(msg) {
             document.getElementById('winMessage').innerText = msg;
-            let s = `<b>Parola Cittadini:</b> ${currentPack.c}<br><b>Parola Undercover:</b> ${currentPack.u}<br><br><b>Ruoli:</b><ul style="margin:5px 0">`;
+            let s = `<b>Parola Cittadini:</b> ${currentPack.c}<br><b>Parola Undercover:</b> ${currentPack.u}<br><br><b>Membri del sistema:</b><ul style="margin:5px 0">`;
             players.forEach(p => s += `<li>${p.name}: ${p.role}</li>`);
             s += "</ul>";
             document.getElementById('gameSummary').innerHTML = s;
@@ -268,12 +301,6 @@
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
         }
-
-        document.getElementById('btnNewGame').onclick = () => {
-            document.querySelectorAll('.p-name').forEach(i => i.value = '');
-            document.getElementById('whiteGuessInput').value = '';
-            switchScreen('screen-setup');
-        };
     </script>
 </body>
 </html>
